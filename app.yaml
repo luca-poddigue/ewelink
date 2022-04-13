@@ -1,0 +1,13 @@
+runtime: nodejs16
+
+env_variables:
+  EWELINK_EMAIL: <<ewelink_email>>
+  EWELINK_PASSWORD: <<ewelink_password>>
+  PASSWORD: <<password>>
+
+automatic_scaling:
+  min_instances: 1
+  max_instances: 1
+
+inbound_services:
+  - warmup
