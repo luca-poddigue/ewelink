@@ -7,8 +7,8 @@ const connection = new ewelink({
     password: process.env.EWELINK_PASSWORD,
     region: 'eu'
 });
-const defaultSecondsOn = 30;
-const defaultSecondsOff = 120;
+const defaultSecondsOn = 60;
+const defaultSecondsOff = 60;
 const deviceId = process.env.DEVICE_ID || '1000e247dd';
 const deviceChannel = process.env.DEVICE_CHANNEL || 4;
 
@@ -28,8 +28,8 @@ function requestListener(req, res) {
         return;
     }
 
+    const parsedUrl = url.parse(req.url, true);
     if (req.method === 'POST') {
-        const parsedUrl = url.parse(req.url,true);
         if (parsedUrl.pathname === '/start') {
             nextStep != null && clearTimeout(nextStep)
             const secondsOn = Number(parsedUrl.query.on_seconds || defaultSecondsOn);
@@ -40,7 +40,11 @@ function requestListener(req, res) {
             nextStep != null && clearTimeout(nextStep)
             setDevicePowerState('off', false)
             res.writeHead(200);
-        } else if (req.url === '/_ah/warmup') {
+        } else {
+            res.writeHead(400);
+        }
+    } else if (req.method === 'GET') {
+        if (parsedUrl.pathname === '/status') {
             res.writeHead(200);
         } else {
             res.writeHead(400);
