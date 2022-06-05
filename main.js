@@ -1,6 +1,7 @@
 const ewelink = require('ewelink-api');
 const http = require('http');
 const url = require('url');
+const axios = require('axios');
 
 const connection = new ewelink({
     email: process.env.EWELINK_EMAIL,
@@ -58,10 +59,28 @@ function requestListener(req, res) {
 async function setDevicePowerState(powerState, loop, secondsOn, secondsOff) {
     console.log(await connection.setDevicePowerState(deviceId, powerState, deviceChannel))
     if (loop) {
+        sendKeepAliveRequest();
         if (powerState === 'on') {
             nextStep = setTimeout(() => setDevicePowerState('off', true, secondsOn, secondsOff), secondsOn * 1000)
         } else {
             nextStep = setTimeout(() => setDevicePowerState('on', true, secondsOn, secondsOff), secondsOff * 1000)
         }
     }
+}
+
+function sendKeepAliveRequest() {
+    const url = (process.env.PUBLIC_URL || (`http://localhost:${PORT}`) )+ '/status';
+    const config = {
+        headers: {
+            'password': process.env.PASSWORD
+        }
+    }
+    axios
+        .get(url, config)
+        .then(res => {
+            console.log(`Keep-alive status: ${res.status}`);
+        })
+        .catch(error => {
+            console.error(`Keep-alive error: ${error}`);
+        });
 }
