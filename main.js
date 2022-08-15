@@ -10,6 +10,7 @@ const connection = new ewelink({
 });
 const defaultSecondsOn = 60;
 const defaultSecondsOff = 60;
+const keepAliveFrequency = 5000;
 const deviceId = process.env.DEVICE_ID || '1000e247dd';
 const deviceChannel = process.env.DEVICE_CHANNEL || 4;
 
@@ -21,6 +22,7 @@ server.listen(PORT, () => {
 
 
 var nextStep;
+var keepAlive;
 
 function requestListener(req, res) {
     if (process.env.PASSWORD !== req.headers.password) {
@@ -32,12 +34,18 @@ function requestListener(req, res) {
     const parsedUrl = url.parse(req.url, true);
     if (req.method === 'POST') {
         if (parsedUrl.pathname === '/start') {
+            keepAlive != null && clearInterval(keepAlive)
             nextStep != null && clearTimeout(nextStep)
+
+            keepAlive = setInterval(() => sendKeepAliveRequest(), keepAliveFrequency)
+
             const secondsOn = Number(parsedUrl.query.on_seconds || defaultSecondsOn);
             const secondsOff = Number(parsedUrl.query.off_seconds || defaultSecondsOff);
             setDevicePowerState('on', secondsOff !== 0, secondsOn, secondsOff)
+
             res.writeHead(200);
         } else if (parsedUrl.pathname === '/stop') {
+            keepAlive != null && clearInterval(keepAlive)
             nextStep != null && clearTimeout(nextStep)
             setDevicePowerState('off', false)
             res.writeHead(200);
@@ -59,7 +67,6 @@ function requestListener(req, res) {
 async function setDevicePowerState(powerState, loop, secondsOn, secondsOff) {
     console.log(await connection.setDevicePowerState(deviceId, powerState, deviceChannel))
     if (loop) {
-        sendKeepAliveRequest();
         if (powerState === 'on') {
             nextStep = setTimeout(() => setDevicePowerState('off', true, secondsOn, secondsOff), secondsOn * 1000)
         } else {
@@ -77,9 +84,6 @@ function sendKeepAliveRequest() {
     }
     axios
         .get(url, config)
-        .then(res => {
-            console.log(`Keep-alive status: ${res.status}`);
-        })
         .catch(error => {
             console.error(`Keep-alive error: ${error}`);
         });
